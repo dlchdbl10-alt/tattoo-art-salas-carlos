@@ -19,7 +19,7 @@ function card(a){const b=a.booking||{};return`<article class="agenda-card"><div 
 function formatDate(k){if(!k)return"Fecha";const [y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("es-CR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
 function escapeHtml(v){return String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]))}
 async function refresh(){try{const s=await fetch("/api/admin/session",{cache:"no-store"}).then(r=>r.json());if(!s.authenticated)return;const r=await fetch("/api/appointments",{cache:"no-store"});if(!r.ok)return;appointments=await r.json();const root=document.getElementById(ROOT_ID);if(!root)mount();else render()}catch{}}
-function mount(){css();const dashboard=document.querySelector("#dashboard");if(!dashboard)return;const root=document.createElement("section");root.id=ROOT_ID;root.innerHTML="Cargando agenda...";const panel=dashboard.querySelector(".request-panel");(panel||dashboard).appendChild(root);render()}
+function mount(){css();const dashboard=document.querySelector("#dashboard");if(!dashboard)return;const root=document.createElement("section");root.id=ROOT_ID;root.innerHTML="Cargando agenda...";dashboard.appendChild(root);render()}
 function start(){if(document.getElementById(ROOT_ID))return;mount();refresh();timer=setInterval(refresh,5000)}
 function boot(){const check=setInterval(()=>{if(document.querySelector("#dashboard")){clearInterval(check);fetch("/api/admin/session",{cache:"no-store"}).then(r=>r.json()).then(s=>{if(s.authenticated)start()}).catch(()=>{})}},500);setTimeout(()=>clearInterval(check),10000)}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
