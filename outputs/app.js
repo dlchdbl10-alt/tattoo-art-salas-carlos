@@ -241,8 +241,10 @@ document.querySelector("#approveRequest").addEventListener("click", async () => 
   const updated = await patchAppointment(current.id, { status: "Aprobada pendiente de pago", proposal, whatsappMessage: message });
   replaceAppointment(updated);
   renderDashboard();
-  window.open(`https://wa.me/50687485810?text=${encodeURIComponent(message)}`, "_blank");
-  showToast("Solicitud aprobada. Se abrio WhatsApp de Carlos.");
+  const clientWhatsApp = normalizePhone(current.booking.phone);
+  if (!clientWhatsApp) return showToast("Solicitud aprobada, pero el WhatsApp del cliente no es valido.");
+  window.open(`https://wa.me/${clientWhatsApp}?text=${encodeURIComponent(message)}`, "_blank");
+  showToast("Solicitud aprobada. WhatsApp del cliente abierto con el mensaje listo para enviar.");
 });
 
 document.querySelector("#infoRequest").addEventListener("click", async () => {
@@ -252,17 +254,22 @@ document.querySelector("#infoRequest").addEventListener("click", async () => {
   const updated = await patchAppointment(current.id, { status: "Requiere mas informacion", whatsappMessage: message });
   replaceAppointment(updated);
   renderDashboard();
+  const clientWhatsApp = normalizePhone(current.booking.phone);
+  if (clientWhatsApp) window.open(`https://wa.me/${clientWhatsApp}?text=${encodeURIComponent(message)}`, "_blank");
   showToast("Solicitud marcada como requiere mas informacion.");
 });
 
 document.querySelector("#rejectRequest").addEventListener("click", async () => {
   const current = getSelectedAppointment();
   if (!current) return showToast("No hay solicitud seleccionada.");
-  const message = "Hola. Gracias por enviar tu idea. En este momento no puedo tomar este proyecto con las condiciones solicitadas.";
+  const message = `Hola, ${current.booking.name}. Gracias por enviar tu solicitud de tatuaje. En este momento no puedo tomar este proyecto con las condiciones solicitadas. Si deseas, puedes contactarnos para consultar por otras opciones.`;
   const updated = await patchAppointment(current.id, { status: "Rechazada", whatsappMessage: message });
   replaceAppointment(updated);
   renderDashboard();
-  showToast("Solicitud rechazada.");
+  const clientWhatsApp = normalizePhone(current.booking.phone);
+  if (!clientWhatsApp) return showToast("Solicitud rechazada, pero el WhatsApp del cliente no es valido.");
+  window.open(`https://wa.me/${clientWhatsApp}?text=${encodeURIComponent(message)}`, "_blank");
+  showToast("Solicitud rechazada. WhatsApp del cliente abierto con el mensaje listo para enviar.");
 });
 
 document.querySelector("#confirmPayment").addEventListener("click", async () => {
@@ -307,6 +314,7 @@ function buildWhatsAppMessage(data, proposal) {
 
 function normalizePhone(phone) {
   const digits = String(phone).replace(/\D/g, "");
+  if (!digits) return "";
   return digits.startsWith("506") ? digits : `506${digits}`;
 }
 
