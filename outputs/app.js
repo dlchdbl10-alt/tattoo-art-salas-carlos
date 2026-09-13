@@ -308,8 +308,8 @@ function renderWhatsappPreview(appointment) {
 function buildWhatsAppMessage(data, proposal) {
   const deposit = proposal.deposit.toLocaleString("es-CR");
   const estimate = proposal.estimate.toLocaleString("es-CR");
-  document.querySelector("#paymentSummary").textContent = `Deposito requerido: CRC ${deposit}. Banco: Banco Nacional. SINPE: 8888-8888.`;
-  return `Hola, ${data.name}. Tu solicitud fue aprobada.\n\nResumen:\nEstilo: ${data.style}\nZona: ${data.bodyZone}\nTamano estimado: ${data.size} cm\nFecha propuesta: ${proposal.date}\nHora: ${proposal.time}\n\nPrecio estimado: CRC ${estimate}\nDeposito requerido: CRC ${deposit}\n\nDatos bancarios:\nBanco: Banco Nacional\nSINPE: 8888-8888\nNombre: Tattoo Art Salas Carlos\n\nPara confirmar tu reserva, sube el comprobante en el enlace de pago.`;
+  document.querySelector("#paymentSummary").textContent = `Deposito requerido: CRC ${deposit}. Banco: Banco Popular. SINPE: 87485810.`;
+  return `Hola, ${data.name}. Tu solicitud fue aprobada.\n\nResumen:\nEstilo: ${data.style}\nZona: ${data.bodyZone}\nTamano estimado: ${data.size} cm\nFecha propuesta: ${proposal.date}\nHora: ${proposal.time}\n\nPrecio estimado: CRC ${estimate}\nDeposito requerido: CRC ${deposit}\n\nDatos bancarios:\nBanco: Banco Popular\nSINPE: 87485810\nNombre: Tattoo Art Salas Carlos\n\nPara confirmar tu reserva, sube el comprobante en el enlace de pago.`;
 }
 
 function normalizePhone(phone) {
