@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tattoo Art Salas Carlos | Gestion de reservas</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Tattoo Art Salas Carlos">
+        <span class="brand-mark">TA</span>
+        <span>Tattoo Art Salas Carlos</span>
+      </a>
+      <nav class="nav" aria-label="Principal">
+        <a href="#portafolio">Portafolio</a>
+        <a href="#reserva">Reservar</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#consentimiento">Consentimiento</a>
+      </nav>
+      <a class="primary-link" href="#reserva">Solicitar cita</a>
+    </header>
+
+    <main>
+      <section id="inicio" class="hero">
+        <div class="hero-media" role="img" aria-label="Estudio profesional de tatuajes"></div>
+        <div class="hero-content">
+          <p class="eyebrow">Tattoo Art Salas Carlos</p>
+          <h1>Reservas privadas para tatuajes con criterio, calma y confirmacion real.</h1>
+          <p>
+            Una plataforma pensada para recibir ideas completas, revisar cada proyecto manualmente y formalizar la cita con deposito, comprobante y consentimiento digital.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#reserva">Iniciar solicitud</a>
+            <a class="button button-secondary" href="#dashboard">Ver panel</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="status-strip" aria-label="Indicadores del sistema">
+        <article>
+          <span>14</span>
+          <p>estilos disponibles</p>
+        </article>
+        <article>
+          <span>3</span>
+          <p>referencias por solicitud</p>
+        </article>
+        <article>
+          <span>24 h</span>
+          <p>recordatorio automatico</p>
+        </article>
+        <article>
+          <span>1</span>
+          <p>agenda centralizada</p>
+        </article>
+      </section>
+
+      <section id="artista" class="artist-section">
+        <div class="artist-copy">
+          <p class="eyebrow">Artista residente</p>
+          <h2>Carlos Salas</h2>
+          <p>
+            Flujo de atencion para un solo tatuador: menos mensajes dispersos, mas contexto visual y decisiones de agenda desde un panel privado.
+          </p>
+          <div class="artist-stats" aria-label="Resumen del estudio">
+            <span>Revision manual</span>
+            <span>Deposito antes de agendar</span>
+            <span>Consentimiento digital</span>
+          </div>
+        </div>
+        <div class="artist-photos" aria-label="Fotografias del artista y el estudio">
+          <figure class="photo-frame portrait" id="artistPhoto">
+            <div class="photo-placeholder">Foto del tatuador</div>
+            <figcaption>Coloca aqui una fotografia real de Carlos en el estudio.</figcaption>
+          </figure>
+          <figure class="photo-frame workspace" id="studioPhoto">
+            <div class="photo-placeholder">Mesa de trabajo</div>
+            <figcaption>Espacio reservado para fotografia real del area de trabajo.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="portafolio" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Portafolio</p>
+          <h2>Especialidades del artista</h2>
+          <p>Selecciona un estilo para cargarlo directamente en el formulario de reserva. Cada tarjeta esta preparada para recibir fotos reales del trabajo de Carlos.</p>
+        </div>
+
+        <div class="style-grid" id="styleGrid"></div>
+      </section>
+
+      <section id="reserva" class="section surface">
+        <div class="section-heading compact">
+          <p class="eyebrow">Solicitud de cita</p>
+          <h2>Formulario paso a paso</h2>
+          <p>El cliente envia una solicitud completa. La cita queda pendiente hasta que el tatuador la revise.</p>
+        </div>
+
+        <div class="booking-shell">
+          <aside class="steps" aria-label="Progreso de solicitud">
+            <button class="step-pill active" data-step-target="0">1 Datos</button>
+            <button class="step-pill" data-step-target="1">2 Tatuaje</button>
+            <button class="step-pill" data-step-target="2">3 Referencias</button>
+            <button class="step-pill" data-step-target="3">4 Disponibilidad</button>
+            <button class="step-pill" data-step-target="4">5 Resumen</button>
+          </aside>
+
+          <form class="booking-form" id="bookingForm">
+            <fieldset class="form-step active">
+              <legend>Datos personales</legend>
+              <label>Nombre completo
+                <input name="name" required placeholder="Ej. Valeria Mora" />
+              </label>
+              <label>WhatsApp
+                <input name="phone" required placeholder="+506 8888 8888" />
+              </label>
+              <label>Edad
+                <input name="age" required type="number" min="18" placeholder="18+" />
+              </label>
+            </fieldset>
+
+            <fieldset class="form-step">
+              <legend>Detalles del tatuaje</legend>
+              <div class="two-cols">
+                <label>Estilo principal
+                  <select name="style" id="styleSelect"></select>
+                </label>
+                <label>Tamano estimado en cm
+                  <input name="size" required type="number" min="2" placeholder="15" />
+                </label>
+              </div>
+              <label>Zona del cuerpo
+                <input name="bodyZone" required placeholder="Antebrazo, espalda, costillas..." />
+              </label>
+              <label>Descripcion de la idea
+                <textarea name="idea" required rows="5" placeholder="Describe concepto, elementos, posicion, nivel de detalle y referencias visuales."></textarea>
+              </label>
+              <div class="toggle-row">
+                <label><input type="checkbox" name="coverup" /> Es coverup</label>
+                <label><input type="checkbox" name="freehand" /> Puede ser freehand</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="form-step">
+              <legend>Referencias</legend>
+              <p class="field-note">Carga hasta 3 imagenes o bocetos. El servidor local las guarda junto a la solicitud.</p>
+              <label class="upload-box">
+                <input id="referenceInput" name="references" type="file" accept="image/*,.pdf" multiple />
+                <span>Seleccionar referencias</span>
+                <small>JPG, PNG, WEBP o PDF. Maximo 3 archivos.</small>
+              </label>
+              <div class="reference-list" id="referenceList"></div>
+            </fieldset>
+
+            <fieldset class="form-step">
+              <legend>Disponibilidad</legend>
+              <div class="availability-grid">
+                <label><input type="checkbox" name="days" value="Lunes" /> Lunes</label>
+                <label><input type="checkbox" name="days" value="Martes" /> Martes</label>
+                <label><input type="checkbox" name="days" value="Miercoles" /> Miercoles</label>
+                <label><input type="checkbox" name="days" value="Jueves" /> Jueves</label>
+                <label><input type="checkbox" name="days" value="Viernes" /> Viernes</label>
+                <label><input type="checkbox" name="days" value="Sabado" /> Sabado</label>
+              </div>
+              <label>Horario preferido
+                <select name="time">
+                  <option>Manana</option>
+                  <option>Tarde</option>
+                  <option>Cualquier horario</option>
+                </select>
+              </label>
+              <label>Notas de disponibilidad
+                <textarea name="availabilityNotes" rows="3" placeholder="Ej. Solo despues de las 3:00 p.m."></textarea>
+              </label>
+            </fieldset>
+
+            <fieldset class="form-step">
+              <legend>Resumen</legend>
+              <div class="summary-card" id="bookingSummary"></div>
+              <p class="field-note">Al enviar, la solicitud quedara en estado Pendiente de revision.</p>
+            </fieldset>
+
+            <div class="form-actions">
+              <button class="button button-secondary" type="button" id="prevStep">Anterior</button>
+              <button class="button button-primary" type="button" id="nextStep">Siguiente</button>
+              <button class="button button-primary hidden" type="submit" id="submitBooking">Enviar solicitud</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="dashboard" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Dashboard privado</p>
+          <h2>Gestion de solicitudes</h2>
+          <p>El tatuador revisa, aprueba, rechaza o solicita mas informacion desde un solo lugar.</p>
+        </div>
+
+        <div class="dashboard">
+          <aside class="dashboard-sidebar">
+            <button class="dash-tab active">Solicitudes</button>
+            <button class="dash-tab">Calendario</button>
+            <button class="dash-tab">Pagos</button>
+            <button class="dash-tab">Clientes</button>
+            <div class="request-list" id="requestList"></div>
+          </aside>
+          <div class="request-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow" id="requestNumber">Solicitud #IF-042</p>
+                <h3 id="requestTitle">Microrealismo en antebrazo</h3>
+              </div>
+              <span class="status-badge pending" id="requestStatus">Pendiente de revision</span>
+            </div>
+            <div class="request-layout">
+              <div class="request-detail">
+                <dl>
+                  <div><dt>Cliente</dt><dd id="dashClient">Valeria Mora</dd></div>
+                  <div><dt>WhatsApp</dt><dd id="dashPhone">+506 8888 8888</dd></div>
+                  <div><dt>Estilo</dt><dd id="dashStyle">Microrealismo</dd></div>
+                  <div><dt>Zona</dt><dd id="dashZone">Antebrazo interno</dd></div>
+                  <div><dt>Tamano</dt><dd id="dashSize">8 cm</dd></div>
+                </dl>
+                <p class="idea-copy" id="dashIdea">Retrato pequeno de mascota con acabado suave, sombras delicadas y pocos elementos decorativos.</p>
+              </div>
+              <div class="approval-box">
+                <label>Fecha propuesta
+                  <input id="approvedDate" type="date" />
+                </label>
+                <label>Hora propuesta
+                  <input id="approvedTime" type="time" />
+                </label>
+                <label>Deposito requerido
+                  <input id="deposit" type="number" value="20000" />
+                </label>
+                <label>Precio estimado
+                  <input id="estimate" type="number" value="85000" />
+                </label>
+              </div>
+            </div>
+            <div class="dashboard-actions">
+              <button class="button button-primary" id="approveRequest">Aprobar</button>
+              <button class="button button-secondary" id="infoRequest">Solicitar mas informacion</button>
+              <button class="button danger" id="rejectRequest">Rechazar</button>
+            </div>
+            <div class="whatsapp-preview" id="whatsappPreview">
+              <strong>Mensaje de WhatsApp</strong>
+              <p>Aqui aparecera el texto automatico cuando la solicitud sea aprobada.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pago" class="section surface">
+        <div class="section-heading compact">
+          <p class="eyebrow">Pago</p>
+          <h2>Subida de comprobante</h2>
+          <p>El cliente formaliza la reserva despues de recibir la aprobacion.</p>
+        </div>
+        <div class="payment-card">
+          <div>
+            <h3>Reserva pendiente de deposito</h3>
+            <p id="paymentSummary">Deposito requerido: CRC 20,000. Banco: Banco Nacional. SINPE: 8888-8888.</p>
+          </div>
+          <label class="upload-box compact-upload">
+            <input id="paymentProof" type="file" accept="image/*,.pdf" />
+            <span>Subir comprobante</span>
+          </label>
+          <button class="button button-primary" id="confirmPayment">Enviar comprobante</button>
+          <span class="status-badge waiting" id="paymentStatus">Aprobada pendiente de pago</span>
+        </div>
+      </section>
+
+      <section id="consentimiento" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Consentimiento digital</p>
+          <h2>Datos medicos y firma</h2>
+          <p>Formulario previo a la sesion para reducir papel, omisiones y firmas de ultimo minuto.</p>
+        </div>
+        <form class="consent-form" id="consentForm">
+          <div class="two-cols">
+            <label>Nombre legal
+              <input name="legalName" required placeholder="Nombre completo" />
+            </label>
+            <label>Identificacion
+              <input name="identification" required placeholder="Cedula o pasaporte" />
+            </label>
+          </div>
+          <div class="medical-grid">
+            <label><input name="medical" value="Alergias" type="checkbox" /> Alergias</label>
+            <label><input name="medical" value="Diabetes" type="checkbox" /> Diabetes</label>
+            <label><input name="medical" value="Epilepsia" type="checkbox" /> Epilepsia</label>
+            <label><input name="medical" value="Anticoagulantes" type="checkbox" /> Anticoagulantes</label>
+            <label><input name="medical" value="Embarazo o lactancia" type="checkbox" /> Embarazo o lactancia</label>
+            <label><input name="medical" value="Consumo reciente de alcohol" type="checkbox" /> Consumo reciente de alcohol</label>
+          </div>
+          <label>Notas medicas
+            <textarea name="medicalNotes" rows="3" placeholder="Indica cualquier condicion relevante."></textarea>
+          </label>
+          <div class="signature-wrap">
+            <canvas id="signaturePad" width="760" height="180" aria-label="Firma digital"></canvas>
+            <button class="button button-secondary" type="button" id="clearSignature">Limpiar firma</button>
+          </div>
+          <button class="button button-primary" type="submit">Guardar consentimiento</button>
+          <span class="status-badge waiting" id="consentStatus">Consentimiento pendiente</span>
+        </form>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Tattoo Art Salas Carlos - Recepcion, aprobacion, pago, consentimiento y recordatorios para una agenda ordenada.</p>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
