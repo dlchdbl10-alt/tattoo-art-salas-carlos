@@ -241,8 +241,8 @@ document.querySelector("#approveRequest").addEventListener("click", async () => 
   const updated = await patchAppointment(current.id, { status: "Aprobada pendiente de pago", proposal, whatsappMessage: message });
   replaceAppointment(updated);
   renderDashboard();
-  window.open(`https://wa.me/${normalizePhone(current.booking.phone)}?text=${encodeURIComponent(message)}`, "_blank");
-  showToast("Solicitud aprobada. Se abrio el mensaje de WhatsApp.");
+  window.open(`https://wa.me/50687485810?text=${encodeURIComponent(message)}`, "_blank");
+  showToast("Solicitud aprobada. Se abrio WhatsApp de Carlos.");
 });
 
 document.querySelector("#infoRequest").addEventListener("click", async () => {
@@ -302,24 +302,7 @@ function buildWhatsAppMessage(data, proposal) {
   const deposit = proposal.deposit.toLocaleString("es-CR");
   const estimate = proposal.estimate.toLocaleString("es-CR");
   document.querySelector("#paymentSummary").textContent = `Deposito requerido: CRC ${deposit}. Banco: Banco Nacional. SINPE: 8888-8888.`;
-  return `Hola, ${data.name}. Tu solicitud fue aprobada.
-
-Resumen:
-Estilo: ${data.style}
-Zona: ${data.bodyZone}
-Tamano estimado: ${data.size} cm
-Fecha propuesta: ${proposal.date}
-Hora: ${proposal.time}
-
-Precio estimado: CRC ${estimate}
-Deposito requerido: CRC ${deposit}
-
-Datos bancarios:
-Banco: Banco Nacional
-SINPE: 8888-8888
-Nombre: Tattoo Art Salas Carlos
-
-Para confirmar tu reserva, sube el comprobante en el enlace de pago.`;
+  return `Hola, ${data.name}. Tu solicitud fue aprobada.\n\nResumen:\nEstilo: ${data.style}\nZona: ${data.bodyZone}\nTamano estimado: ${data.size} cm\nFecha propuesta: ${proposal.date}\nHora: ${proposal.time}\n\nPrecio estimado: CRC ${estimate}\nDeposito requerido: CRC ${deposit}\n\nDatos bancarios:\nBanco: Banco Nacional\nSINPE: 8888-8888\nNombre: Tattoo Art Salas Carlos\n\nPara confirmar tu reserva, sube el comprobante en el enlace de pago.`;
 }
 
 function normalizePhone(phone) {
