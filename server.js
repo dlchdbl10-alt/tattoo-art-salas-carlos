@@ -10,222 +10,35 @@ const publicDir = path.join(root, "outputs");
 const dataDir = path.join(root, "data");
 const uploadsDir = path.join(dataDir, "uploads");
 const dbPath = path.join(dataDir, "db.json");
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const sessions = new Map();
 
-const mimeTypes = {
-  ".html": "text/html; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".js": "application/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".avif": "image/avif",
-  ".pdf": "application/pdf",
-  ".txt": "text/plain; charset=utf-8"
-};
+const mimeTypes = { ".html":"text/html; charset=utf-8", ".css":"text/css; charset=utf-8", ".js":"application/javascript; charset=utf-8", ".json":"application/json; charset=utf-8", ".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".png":"image/png", ".webp":"image/webp", ".avif":"image/avif", ".pdf":"application/pdf", ".txt":"text/plain; charset=utf-8" };
 
-async function ensureStore() {
-  await fsp.mkdir(uploadsDir, { recursive: true });
-  try {
-    await fsp.access(dbPath);
-  } catch {
-    await fsp.writeFile(dbPath, JSON.stringify({ appointments: [] }, null, 2));
-  }
-}
+async function ensureStore(){await fsp.mkdir(uploadsDir,{recursive:true});try{await fsp.access(dbPath);}catch{await fsp.writeFile(dbPath,JSON.stringify({appointments:[]},null,2));}}
+async function readDb(){await ensureStore();return JSON.parse(await fsp.readFile(dbPath,"utf8"));}
+async function writeDb(db){await fsp.writeFile(dbPath,JSON.stringify(db,null,2));}
+function json(res,status,payload){res.writeHead(status,{"Content-Type":"application/json; charset=utf-8"});res.end(JSON.stringify(payload));}
+function parseCookies(req){const header=req.headers.cookie||"";return Object.fromEntries(header.split(";").filter(Boolean).map((part)=>{const i=part.indexOf("=");return[decodeURIComponent(part.slice(0,i).trim()),decodeURIComponent(part.slice(i+1).trim())];}));}
+function isAdmin(req){const token=parseCookies(req).tattoo_admin;const expiry=token&&sessions.get(token);if(expiry&&expiry>Date.now())return true;if(token)sessions.delete(token);return false;}
+function requireAdmin(req,res){if(!isAdmin(req)){json(res,401,{error:"Acceso de tatuador requerido."});return false;}return true;}
+function clientToken(req){return String(req.headers["x-client-token"]||"");}
+function requireClient(appointment,req,res){if(!appointment||!appointment.clientToken||clientToken(req)!==appointment.clientToken){json(res,403,{error:"No tienes acceso a esta solicitud."});return false;}return true;}
+function readBody(req){return new Promise((resolve,reject)=>{let body="";req.on("data",chunk=>{body+=chunk;if(body.length>20*1024*1024){reject(new Error("Archivo demasiado grande."));req.destroy();}});req.on("end",()=>{try{resolve(body?JSON.parse(body):{});}catch{reject(new Error("JSON invalido."));}});req.on("error",reject);});}
+function cleanName(name){return String(name||"archivo").replace(/[^\w.-]+/g,"_");}
+function fileExtension(file){const n=path.extname(file?.name||"");if(n)return n.toLowerCase();if(file?.type==="image/png")return".png";if(file?.type==="image/webp")return".webp";if(file?.type==="application/pdf")return".pdf";return".jpg";}
+async function saveDataUrlFile(appointmentId,file,prefix){if(!file||!file.dataUrl)return null;const match=/^data:([^;]+);base64,(.+)$/u.exec(file.dataUrl);if(!match)throw new Error("Formato de archivo invalido.");const folder=path.join(uploadsDir,appointmentId);await fsp.mkdir(folder,{recursive:true});const ext=fileExtension(file);const filename=`${prefix}-${Date.now()}-${cleanName(file.name||crypto.randomUUID())}${ext}`;await fsp.writeFile(path.join(folder,filename),Buffer.from(match[2],"base64"));return{name:file.name||filename,type:match[1],path:`/uploads/${appointmentId}/${filename}`,savedAt:new Date().toISOString()};}
+function adminAppointment(a){const{clientToken,...safe}=a;return safe;}
+async function createAppointment(req,res){const body=await readBody(req);if(!body.booking?.name||!body.booking?.phone)return json(res,400,{error:"Nombre y WhatsApp son obligatorios."});const db=await readDb();const id=crypto.randomUUID();const token=crypto.randomBytes(32).toString("hex");const code=String(db.appointments.length+43).padStart(3,"0");const references=[];for(const[index,file]of(body.references||[]).entries()){const saved=await saveDataUrlFile(id,file,`referencia-${index+1}`);if(saved)references.push(saved);}const appointment={id,code,clientToken:token,status:"Pendiente de revision",booking:body.booking,references,proposal:null,whatsappMessage:"",paymentProof:null,consent:null,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};db.appointments.unshift(appointment);await writeDb(db);return json(res,201,{appointment,clientToken:token});}
+async function getClientAppointment(req,res,id){const db=await readDb();const appointment=db.appointments.find(item=>item.id===id);if(!requireClient(appointment,req,res))return;return json(res,200,appointment);}
+async function updateAppointment(req,res,id){if(!requireAdmin(req,res))return;const body=await readBody(req);const db=await readDb();const appointment=db.appointments.find(item=>item.id===id);if(!appointment)return json(res,404,{error:"Solicitud no encontrada."});Object.assign(appointment,{status:body.status||appointment.status,proposal:body.proposal||appointment.proposal,whatsappMessage:body.whatsappMessage??appointment.whatsappMessage,updatedAt:new Date().toISOString()});await writeDb(db);return json(res,200,adminAppointment(appointment));}
+async function savePaymentProof(req,res,id){const body=await readBody(req);const db=await readDb();const appointment=db.appointments.find(item=>item.id===id);if(!requireClient(appointment,req,res))return;if(appointment.status!=="Aprobada pendiente de pago")return json(res,409,{error:"La solicitud todavía no está aprobada para pago."});appointment.paymentProof=await saveDataUrlFile(id,body.file,"comprobante");appointment.status="Aprobada y confirmada";appointment.updatedAt=new Date().toISOString();await writeDb(db);return json(res,200,appointment);}
+async function saveConsent(req,res,id){const body=await readBody(req);const db=await readDb();const appointment=db.appointments.find(item=>item.id===id);if(!requireClient(appointment,req,res))return;if(appointment.status!=="Aprobada y confirmada")return json(res,409,{error:"El consentimiento estará disponible después de confirmar el depósito."});const signature=await saveDataUrlFile(id,{name:"firma.png",type:"image/png",dataUrl:body.signatureDataUrl},"firma");appointment.consent={...body.consent,signature,acceptedAt:new Date().toISOString()};appointment.updatedAt=new Date().toISOString();await writeDb(db);return json(res,200,appointment);}
+async function adminLogin(req,res){const body=await readBody(req);if(!ADMIN_PASSWORD)return json(res,503,{error:"Falta configurar ADMIN_PASSWORD en el servidor."});const supplied=Buffer.from(String(body.password||""));const expected=Buffer.from(ADMIN_PASSWORD);const valid=supplied.length===expected.length&&crypto.timingSafeEqual(supplied,expected);if(!valid)return json(res,401,{error:"Contraseña incorrecta."});const token=crypto.randomBytes(32).toString("hex");sessions.set(token,Date.now()+8*60*60*1000);const secure=process.env.NODE_ENV==="production"?"; Secure":"";res.writeHead(200,{"Content-Type":"application/json; charset=utf-8","Set-Cookie":`tattoo_admin=${encodeURIComponent(token)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=28800${secure}`});res.end(JSON.stringify({ok:true}));}
+function adminLogout(req,res){const token=parseCookies(req).tattoo_admin;if(token)sessions.delete(token);res.writeHead(200,{"Content-Type":"application/json; charset=utf-8","Set-Cookie":"tattoo_admin=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0"});res.end(JSON.stringify({ok:true}));}
+function adminSession(req,res){return json(res,200,{authenticated:isAdmin(req)});}
+async function serveStatic(req,res){const urlPath=decodeURIComponent(new URL(req.url,`http://localhost:${port}`).pathname);if(urlPath.startsWith("/uploads/"))return streamFile(path.join(dataDir,urlPath),res);return streamFile(path.join(publicDir,urlPath==="/"?"/index.html":urlPath),res);}
+function streamFile(filePath,res){const resolved=path.resolve(filePath);const allowed=[path.resolve(publicDir),path.resolve(uploadsDir)];if(!allowed.some(base=>resolved.startsWith(base)))return json(res,403,{error:"Ruta no permitida."});fs.createReadStream(resolved).on("open",()=>{const ext=path.extname(resolved).toLowerCase();res.writeHead(200,{"Content-Type":mimeTypes[ext]||"application/octet-stream"});}).on("error",()=>json(res,404,{error:"Archivo no encontrado."})).pipe(res);}
+async function router(req,res){try{const{pathname}=new URL(req.url,`http://localhost:${port}`);if(pathname==="/health"&&req.method==="GET")return json(res,200,{ok:true,service:"tattoo-art-salas-carlos"});if(pathname==="/api/admin/login"&&req.method==="POST")return adminLogin(req,res);if(pathname==="/api/admin/logout"&&req.method==="POST")return adminLogout(req,res);if(pathname==="/api/admin/session"&&req.method==="GET")return adminSession(req,res);if(pathname==="/api/appointments"&&req.method==="GET"){if(!requireAdmin(req,res))return;const db=await readDb();return json(res,200,db.appointments.map(adminAppointment));}if(pathname==="/api/appointments"&&req.method==="POST")return createAppointment(req,res);const clientMatch=/^\/api\/client\/appointments\/([^/]+)$/u.exec(pathname);if(clientMatch&&req.method==="GET")return getClientAppointment(req,res,clientMatch[1]);const appointmentMatch=/^\/api\/appointments\/([^/]+)$/u.exec(pathname);if(appointmentMatch&&req.method==="PATCH")return updateAppointment(req,res,appointmentMatch[1]);const paymentMatch=/^\/api\/appointments\/([^/]+)\/payment-proof$/u.exec(pathname);if(paymentMatch&&req.method==="POST")return savePaymentProof(req,res,paymentMatch[1]);const consentMatch=/^\/api\/appointments\/([^/]+)\/consent$/u.exec(pathname);if(consentMatch&&req.method==="POST")return saveConsent(req,res,consentMatch[1]);if(req.method==="GET")return serveStatic(req,res);return json(res,405,{error:"Metodo no permitido."});}catch(error){return json(res,500,{error:error.message||"Error interno."});}}
 
-async function readDb() {
-  await ensureStore();
-  return JSON.parse(await fsp.readFile(dbPath, "utf8"));
-}
-
-async function writeDb(db) {
-  await fsp.writeFile(dbPath, JSON.stringify(db, null, 2));
-}
-
-function json(res, status, payload) {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
-  res.end(JSON.stringify(payload));
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => {
-      body += chunk;
-      if (body.length > 20 * 1024 * 1024) {
-        reject(new Error("Archivo demasiado grande para esta demo local."));
-        req.destroy();
-      }
-    });
-    req.on("end", () => resolve(body ? JSON.parse(body) : {}));
-    req.on("error", reject);
-  });
-}
-
-function cleanName(name) {
-  return String(name || "archivo").replace(/[^\w.-]+/g, "_");
-}
-
-function fileExtension(file) {
-  const fromName = path.extname(file.name || "");
-  if (fromName) return fromName.toLowerCase();
-  if (file.type === "image/png") return ".png";
-  if (file.type === "image/webp") return ".webp";
-  if (file.type === "application/pdf") return ".pdf";
-  return ".jpg";
-}
-
-async function saveDataUrlFile(appointmentId, file, prefix) {
-  if (!file || !file.dataUrl) return null;
-  const match = /^data:([^;]+);base64,(.+)$/u.exec(file.dataUrl);
-  if (!match) throw new Error("Formato de archivo invalido.");
-  const folder = path.join(uploadsDir, appointmentId);
-  await fsp.mkdir(folder, { recursive: true });
-  const ext = fileExtension(file);
-  const filename = `${prefix}-${Date.now()}-${cleanName(file.name || crypto.randomUUID())}${ext}`;
-  const diskPath = path.join(folder, filename);
-  await fsp.writeFile(diskPath, Buffer.from(match[2], "base64"));
-  return {
-    name: file.name || filename,
-    type: match[1],
-    path: `/uploads/${appointmentId}/${filename}`,
-    savedAt: new Date().toISOString()
-  };
-}
-
-function publicAppointment(appointment) {
-  return appointment;
-}
-
-async function createAppointment(req, res) {
-  const body = await readBody(req);
-  if (!body.booking?.name || !body.booking?.phone) {
-    return json(res, 400, { error: "Nombre y WhatsApp son obligatorios." });
-  }
-  const db = await readDb();
-  const id = crypto.randomUUID();
-  const code = String(db.appointments.length + 43).padStart(3, "0");
-  const references = [];
-  for (const [index, file] of (body.references || []).entries()) {
-    const saved = await saveDataUrlFile(id, file, `referencia-${index + 1}`);
-    if (saved) references.push(saved);
-  }
-  const appointment = {
-    id,
-    code,
-    status: "Pendiente de revision",
-    booking: body.booking,
-    references,
-    proposal: null,
-    whatsappMessage: "",
-    paymentProof: null,
-    consent: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  db.appointments.unshift(appointment);
-  await writeDb(db);
-  return json(res, 201, publicAppointment(appointment));
-}
-
-async function updateAppointment(req, res, id) {
-  const body = await readBody(req);
-  const db = await readDb();
-  const appointment = db.appointments.find((item) => item.id === id);
-  if (!appointment) return json(res, 404, { error: "Solicitud no encontrada." });
-  Object.assign(appointment, {
-    status: body.status || appointment.status,
-    proposal: body.proposal || appointment.proposal,
-    whatsappMessage: body.whatsappMessage ?? appointment.whatsappMessage,
-    updatedAt: new Date().toISOString()
-  });
-  await writeDb(db);
-  return json(res, 200, publicAppointment(appointment));
-}
-
-async function savePaymentProof(req, res, id) {
-  const body = await readBody(req);
-  const db = await readDb();
-  const appointment = db.appointments.find((item) => item.id === id);
-  if (!appointment) return json(res, 404, { error: "Solicitud no encontrada." });
-  appointment.paymentProof = await saveDataUrlFile(id, body.file, "comprobante");
-  appointment.status = "Aprobada y confirmada";
-  appointment.updatedAt = new Date().toISOString();
-  await writeDb(db);
-  return json(res, 200, publicAppointment(appointment));
-}
-
-async function saveConsent(req, res, id) {
-  const body = await readBody(req);
-  const db = await readDb();
-  const appointment = db.appointments.find((item) => item.id === id);
-  if (!appointment) return json(res, 404, { error: "Solicitud no encontrada." });
-  const signature = await saveDataUrlFile(id, {
-    name: "firma.png",
-    type: "image/png",
-    dataUrl: body.signatureDataUrl
-  }, "firma");
-  appointment.consent = {
-    ...body.consent,
-    signature,
-    acceptedAt: new Date().toISOString()
-  };
-  appointment.updatedAt = new Date().toISOString();
-  await writeDb(db);
-  return json(res, 200, publicAppointment(appointment));
-}
-
-async function serveStatic(req, res) {
-  const urlPath = decodeURIComponent(new URL(req.url, `http://localhost:${port}`).pathname);
-  if (urlPath.startsWith("/uploads/")) {
-    return streamFile(path.join(dataDir, urlPath), res);
-  }
-  const requestedPath = urlPath === "/" ? "/index.html" : urlPath;
-  return streamFile(path.join(publicDir, requestedPath), res);
-}
-
-function streamFile(filePath, res) {
-  const resolved = path.resolve(filePath);
-  const allowed = [path.resolve(publicDir), path.resolve(uploadsDir)];
-  if (!allowed.some((base) => resolved.startsWith(base))) {
-    return json(res, 403, { error: "Ruta no permitida." });
-  }
-  fs.createReadStream(resolved)
-    .on("open", () => {
-      const ext = path.extname(resolved).toLowerCase();
-      res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
-    })
-    .on("error", () => json(res, 404, { error: "Archivo no encontrado." }))
-    .pipe(res);
-}
-
-async function router(req, res) {
-  try {
-    const { pathname } = new URL(req.url, `http://localhost:${port}`);
-    if (pathname === "/health" && req.method === "GET") {
-      return json(res, 200, { ok: true, service: "tattoo-art-salas-carlos" });
-    }
-    if (pathname === "/api/appointments" && req.method === "GET") {
-      const db = await readDb();
-      return json(res, 200, db.appointments.map(publicAppointment));
-    }
-    if (pathname === "/api/appointments" && req.method === "POST") return createAppointment(req, res);
-    const appointmentMatch = /^\/api\/appointments\/([^/]+)$/u.exec(pathname);
-    if (appointmentMatch && req.method === "PATCH") return updateAppointment(req, res, appointmentMatch[1]);
-    const paymentMatch = /^\/api\/appointments\/([^/]+)\/payment-proof$/u.exec(pathname);
-    if (paymentMatch && req.method === "POST") return savePaymentProof(req, res, paymentMatch[1]);
-    const consentMatch = /^\/api\/appointments\/([^/]+)\/consent$/u.exec(pathname);
-    if (consentMatch && req.method === "POST") return saveConsent(req, res, consentMatch[1]);
-    if (req.method === "GET") return serveStatic(req, res);
-    return json(res, 405, { error: "Metodo no permitido." });
-  } catch (error) {
-    return json(res, 500, { error: error.message || "Error interno." });
-  }
-}
-
-ensureStore().then(() => {
-  http.createServer(router).listen(port, () => {
-    console.log(`Tattoo Art Salas Carlos listo en http://localhost:${port}`);
-  });
-});
+ensureStore().then(()=>{setInterval(()=>{const now=Date.now();for(const[token,expiry]of sessions)if(expiry<=now)sessions.delete(token);},15*60*1000).unref();http.createServer(router).listen(port,()=>console.log(`Tattoo Art Salas Carlos listo en http://localhost:${port}`));});
