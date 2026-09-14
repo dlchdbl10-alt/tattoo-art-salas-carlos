@@ -5,8 +5,8 @@ const path = require("path");
 const dataDir = path.join(__dirname, "data");
 const dbPath = path.join(dataDir, "db.json");
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
-const useSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
+const useSupabase = Boolean(SUPABASE_URL && SUPABASE_SECRET_KEY);
 
 async function ensureLocalStore() {
   await fsp.mkdir(dataDir, { recursive: true });
@@ -16,8 +16,8 @@ async function ensureLocalStore() {
 
 function headers() {
   return {
-    apikey: SUPABASE_SERVICE_ROLE_KEY,
-    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    apikey: SUPABASE_SECRET_KEY,
+    Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
     "Content-Type": "application/json"
   };
 }
@@ -99,7 +99,7 @@ async function writeDb(db) {
 async function migrateLocalDb() {
   await ensureLocalStore();
   const db = JSON.parse(await fsp.readFile(dbPath, "utf8"));
-  if (!useSupabase) throw new Error("Configura SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY antes de migrar.");
+  if (!useSupabase) throw new Error("Configura SUPABASE_URL y SUPABASE_SECRET_KEY antes de migrar.");
   const rows = (db.appointments || []).map(toRow);
   if (!rows.length) return { migrated: 0 };
   await supabaseRequest("/rest/v1/appointments?on_conflict=id", {
